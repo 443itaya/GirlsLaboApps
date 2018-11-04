@@ -1,5 +1,6 @@
 package jp.ac.doshisha.mikilab.girlslaboapps;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,7 +15,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RatingBar;
 import android.widget.SeekBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -24,8 +24,18 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity {
 
+    //中継機のアドレス&ポート番号
+    private String address = "0.0.0.0";
+    private int port = 55333;
+
     //RGBの信号値
     private int numR, numG, numB;
+    private int tmpR, tmpG, tmpB;
+
+    //グループ番号
+    private int groupNumber = 5;
+
+    private static final int REQUESTCODE_TEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,14 +56,14 @@ public class MainActivity extends AppCompatActivity {
         final TextView paramG = (TextView)findViewById(R.id.paramG);
         final TextView paramB = (TextView)findViewById(R.id.paramB);
 
-        //送信ボタンの定義
+        //ボタンの定義
         Button minusR = (Button)findViewById(R.id.minusR);
         Button minusG = (Button)findViewById(R.id.minusG);
         Button minusB = (Button)findViewById(R.id.minusB);
         Button plusR = (Button)findViewById(R.id.plusR);
         Button plusG = (Button)findViewById(R.id.plusG);
         Button plusB = (Button)findViewById(R.id.plusB);
-        Button sendbutton = (Button)findViewById(R.id.sendsignal);
+        Button sendsignal = (Button)findViewById(R.id.sendsignal);
 
         //RGB初期値
         numR = seekBarR.getProgress();
@@ -125,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        //ボタンが押されたら
+        //+-ボタンが押されたとき
         minusR.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -176,6 +186,41 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //送信ボタンが押されたとき
+        sendsignal.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //信号値送信
+                sendSignal();
+            }
+        });
+
+    }
+
+    public void sendSignal() {
+
+        new AsyncTask<Void, Void, String>() {
+
+
+            @Override
+            protected String doInBackground(Void... voids) {
+                try {
+                    Socket socket = new Socket(address, port);
+                    PrintWriter pw = new PrintWriter(socket.getOutputStream(),true);
+
+                    String sendText = (groupNumber + "," + numR + "," + numG + "," + numB);
+                    Log.w("sendMessage",sendText);
+                    pw.println(sendText);
+
+                    socket.close();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        }.execute();
+
     }
 
     @Override
@@ -185,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    //Settingsを押したとき
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -194,9 +240,28 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingActivity.class);
+            intent.putExtra("address", address);
+            intent.putExtra("port", port);
+            intent.putExtra("groupNumber", groupNumber);
+            startActivityForResult(intent,REQUESTCODE_TEST);
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    //SettingActivityから値を持ってくる
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUESTCODE_TEST:
+                if (RESULT_OK == resultCode) {
+                    address = data.getStringExtra("address");
+                    port = data.getIntExtra("port", 0);
+                    groupNumber = data.getIntExtra("groupNumber", 0);
+                }
+                break;
+        }
     }
 }
