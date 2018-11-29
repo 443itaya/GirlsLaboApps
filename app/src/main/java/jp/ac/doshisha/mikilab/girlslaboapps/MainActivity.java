@@ -25,12 +25,13 @@ import java.net.UnknownHostException;
 public class MainActivity extends AppCompatActivity {
 
     //中継機のアドレス&ポート番号
-    private String address = "0.0.0.0";
+    private String address = "172.20.11.230";
     private int port = 55333;
 
     //RGBの信号値
     private int numR, numG, numB;
     private int tmpR, tmpG, tmpB;
+    private int ttmpR = 0, ttmpG = 0, ttmpB = 0;
 
     //グループ番号
     private int groupNumber = 5;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         Button plusG = (Button)findViewById(R.id.plusG);
         Button plusB = (Button)findViewById(R.id.plusB);
         Button sendsignal = (Button)findViewById(R.id.sendsignal);
+        Button back = (Button)findViewById(R.id.back);
 
         //RGB初期値
         numR = seekBarR.getProgress();
@@ -195,6 +197,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //戻るボタンが押されたとき
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                seekBarR.setProgress(ttmpR);
+                paramR.setText(ttmpR+"");
+                seekBarG.setProgress(ttmpG);
+                paramG.setText(ttmpG+"");
+                seekBarB.setProgress(ttmpB);
+                paramB.setText(ttmpB+"");
+
+                //信号値送信
+                sendSignal();
+            }
+        });
+
     }
 
     public void sendSignal() {
@@ -209,6 +227,8 @@ public class MainActivity extends AppCompatActivity {
                     PrintWriter pw = new PrintWriter(socket.getOutputStream(),true);
 
                     String sendText = (groupNumber + "," + numR + "," + numG + "," + numB);
+                    ttmpR = tmpR;   ttmpG = tmpG;   ttmpB = tmpB;
+                    tmpR = numR;    tmpG = numG;    tmpB = numB;
                     Log.w("sendMessage",sendText);
                     pw.println(sendText);
 
